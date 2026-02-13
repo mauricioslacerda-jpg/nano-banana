@@ -50,6 +50,17 @@
                     </div>
                 </div>
 
+                <div class="input-group nsfw-group">
+                    <div class="nsfw-row">
+                        <label for="nsfw-toggle">NSFW 18+</label>
+                        <label class="switch" aria-label="Ativar modo NSFW 18+">
+                            <input type="checkbox" id="nsfw-toggle">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+                    <p id="nsfw-copy" class="hint">Desligado: sensual elegante e sugestivo.</p>
+                </div>
+
                 <div class="input-group prompt-group">
                     <label for="prompt">Sussurre seu prompt</label>
                     <div class="prompt-meta">
@@ -60,15 +71,18 @@
                         placeholder="Ex: editorial noturno de banana cromada, chuva fina, neon quente, lente 35mm"></textarea>
                     <div class="tease-chips" aria-label="Sugestoes com duplo sentido">
                         <button type="button" class="chip"
-                            data-prompt="Retrato cinematografico de banana dourada em luz vermelha, enquadramento fechado, brilho de studio">
+                            data-prompt-safe="Retrato cinematografico de banana dourada em luz vermelha, enquadramento fechado, brilho de studio"
+                            data-prompt-nsfw="Retrato boudoir de personagem adulta em luz vermelha, close intenso, textura de pele fotografica">
                             Close fechado
                         </button>
                         <button type="button" class="chip"
-                            data-prompt="Composicao sensual de frutas em mesa de veludo, luz lateral suave, estilo editorial premium">
+                            data-prompt-safe="Composicao sensual de frutas em mesa de veludo, luz lateral suave, estilo editorial premium"
+                            data-prompt-nsfw="Ensaio editorial adulto com nudez artistica parcial, veludo, luz lateral suave, clima intimista premium">
                             Luz lateral
                         </button>
                         <button type="button" class="chip"
-                            data-prompt="Cena futurista com neon quente, reflexos molhados no asfalto e foco em textura brilhante">
+                            data-prompt-safe="Cena futurista com neon quente, reflexos molhados no asfalto e foco em textura brilhante"
+                            data-prompt-nsfw="Cena noturna futurista com personagem adulta em figurino provocante, neon quente e atmosfera erotica cinematografica">
                             Neon molhado
                         </button>
                     </div>

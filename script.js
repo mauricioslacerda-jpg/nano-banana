@@ -8,12 +8,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const promptLengthLabel = document.getElementById('prompt-length');
     const promptHeatLabel = document.getElementById('prompt-heat');
     const teaseChips = Array.from(document.querySelectorAll('.chip'));
+    const nsfwToggle = document.getElementById('nsfw-toggle');
+    const nsfwCopy = document.getElementById('nsfw-copy');
+    const statusPill = document.querySelector('.status-pill');
 
-    const loadingMessages = [
+    const defaultPromptPlaceholder = 'Ex: editorial noturno de banana cromada, chuva fina, neon quente, lente 35mm';
+    const nsfwPromptPlaceholder = 'Ex: ensaio boudoir adulto, luz baixa, textura cinematografica, atmosfera erotica';
+
+    const loadingMessagesSafe = [
         'Aquecendo os pixels com carinho...',
         'Caprichando no close e no brilho...',
         'Misturando luz, foco e segundas intencoes...',
         'Montando uma cena para olhar duas vezes...'
+    ];
+
+    const loadingMessagesNsfw = [
+        'Ativando clima adulto no set...',
+        'Lapidando um frame picante e elegante...',
+        'Subindo a tensao visual com luz e textura...',
+        'Buscando um resultado erotico em tom artistico...'
     ];
 
     const heatLevels = [
@@ -22,12 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
         { limit: Infinity, label: 'Fervendo' }
     ];
 
+    const nsfwPromptDirectives = [
+        'adult-only subject',
+        'sensual boudoir atmosphere',
+        'erotic tone with artistic nudity allowed',
+        'no minors',
+        'no explicit sexual act',
+        'high-end editorial photography style'
+    ].join(', ');
+
     promptInput.addEventListener('input', updatePromptMeta);
+    nsfwToggle?.addEventListener('change', syncNsfwMode);
+    syncNsfwMode();
     updatePromptMeta();
 
     teaseChips.forEach((chip) => {
         chip.addEventListener('click', () => {
-            const suggestion = chip.dataset.prompt;
+            const suggestion = getChipPrompt(chip);
             if (!suggestion) {
                 return;
             }
@@ -45,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const apiKey = apiKeyInput.value.trim();
         const prompt = promptInput.value.trim();
         const model = document.querySelector('input[name="model"]:checked').value;
+        const finalPrompt = buildPrompt(prompt);
 
         if (!apiKey) {
             alert('Sem chave nao rola. Cole sua Gemini API Key primeiro.');
@@ -62,12 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
         imageContainer.innerHTML = `
             <div class="empty-state">
                 <div class="placeholder-icon small">LAB</div>
-                <p>${pickRandom(loadingMessages)}</p>
+                <p>${pickRandom(getLoadingMessages())}</p>
             </div>
         `;
 
         try {
-            const result = await generateImage(apiKey, model, prompt);
+            const result = await generateImage(apiKey, model, finalPrompt, prompt);
             imageContainer.innerHTML = '';
             imageContainer.appendChild(result);
         } catch (error) {
@@ -75,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             imageContainer.innerHTML = `
                 <div class="empty-state" style="color: #ffb4a4;">
                     <div class="placeholder-icon small">OPS</div>
-                    <p>${error.message}</p>
+                    <p>${formatGenerationError(error)}</p>
                     <p class="result-copy">Confira a chave e tente um prompt diferente.</p>
                 </div>
             `;
@@ -96,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const currentHeat = heatLevels.find((level) => trimmedLength <= level.limit);
-        promptHeatLabel.textContent = currentHeat ? currentHeat.label : 'Morno';
+        const baseHeat = currentHeat ? currentHeat.label : 'Morno';
+        promptHeatLabel.textContent = isNsfwEnabled() ? `${baseHeat} +18` : baseHeat;
     }
 
     function setLoading(isLoading) {
@@ -118,7 +144,65 @@ document.addEventListener('DOMContentLoaded', () => {
         return items[Math.floor(Math.random() * items.length)];
     }
 
-    async function generateImage(apiKey, model, promptText) {
+    function isNsfwEnabled() {
+        return Boolean(nsfwToggle?.checked);
+    }
+
+    function syncNsfwMode() {
+        const active = isNsfwEnabled();
+        document.body.classList.toggle('nsfw-mode', active);
+
+        if (statusPill) {
+            statusPill.textContent = active ? 'modo 18+' : 'modo flerte';
+        }
+
+        if (nsfwCopy) {
+            nsfwCopy.textContent = active
+                ? 'Ligado: clima adulto com erotismo artistico (sem explicito extremo).'
+                : 'Desligado: sensual elegante e sugestivo.';
+        }
+
+        if (promptInput) {
+            promptInput.placeholder = active ? nsfwPromptPlaceholder : defaultPromptPlaceholder;
+        }
+
+        updatePromptMeta();
+    }
+
+    function getChipPrompt(chip) {
+        const safePrompt = chip.dataset.promptSafe || '';
+        const nsfwPrompt = chip.dataset.promptNsfw || '';
+
+        if (isNsfwEnabled()) {
+            return nsfwPrompt || safePrompt;
+        }
+
+        return safePrompt || nsfwPrompt;
+    }
+
+    function getLoadingMessages() {
+        return isNsfwEnabled() ? loadingMessagesNsfw : loadingMessagesSafe;
+    }
+
+    function buildPrompt(promptText) {
+        if (!isNsfwEnabled()) {
+            return promptText;
+        }
+
+        return `${promptText}. ${nsfwPromptDirectives}`;
+    }
+
+    function formatGenerationError(error) {
+        const baseMessage = error instanceof Error ? error.message : 'Erro inesperado.';
+
+        if (isNsfwEnabled() && /safety|blocked|policy|prohibited/i.test(baseMessage)) {
+            return 'O modelo bloqueou o pedido por politica de seguranca. Reduza o nivel explicito do prompt.';
+        }
+
+        return baseMessage;
+    }
+
+    async function generateImage(apiKey, model, promptText, imageAltText = promptText) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
         const payload = {
@@ -129,7 +213,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }],
             generationConfig: {
                 responseModalities: ['TEXT', 'IMAGE']
-            }
+            },
+            safetySettings: [
+                { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' }
+            ]
         };
 
         const response = await fetch(url, {
@@ -152,8 +243,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const data = await response.json();
+        console.log('API Response:', JSON.stringify(data, null, 2));
 
         if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+            const feedback = data.promptFeedback;
+            if (feedback?.blockReason) {
+                const reason = feedback.blockReason;
+                const ratings = (feedback.safetyRatings || [])
+                    .filter(r => r.probability !== 'NEGLIGIBLE')
+                    .map(r => `${r.category}: ${r.probability}`)
+                    .join(', ');
+                throw new Error(
+                    `Prompt bloqueado pelo filtro de seguranca (${reason}).${ratings ? ` Categorias: ${ratings}` : ''} Tente reformular o prompt.`
+                );
+            }
+
+            // Check if candidate was blocked due to finish reason
+            const candidate = data.candidates?.[0];
+            if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+                throw new Error(
+                    `Geracao interrompida: ${candidate.finishReason}. Tente um prompt diferente.`
+                );
+            }
+
             throw new Error('Nenhuma imagem retornada. Teste um prompt mais claro.');
         }
 
@@ -166,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (part.inlineData) {
                 const img = document.createElement('img');
                 img.src = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                img.alt = promptText;
+                img.alt = imageAltText;
                 container.appendChild(img);
                 foundImage = true;
             } else if (part.text) {

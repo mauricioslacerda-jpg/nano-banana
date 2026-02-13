@@ -177,6 +177,18 @@ body::before {
     background: rgba(255, 184, 107, 0.11);
 }
 
+body.nsfw-mode {
+    --accent-hot: #ff3f66;
+    --accent-soft: #ff8f76;
+    --accent-glow: rgba(255, 63, 102, 0.45);
+}
+
+body.nsfw-mode .status-pill {
+    color: #ffd8e0;
+    border-color: rgba(255, 63, 102, 0.62);
+    background: rgba(255, 63, 102, 0.2);
+}
+
 .subtitle {
     color: var(--text-secondary);
     font-size: 1.02rem;
@@ -281,6 +293,68 @@ textarea:focus {
     gap: 0.85rem;
 }
 
+.nsfw-group {
+    margin-top: -0.15rem;
+}
+
+.nsfw-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.switch {
+    position: relative;
+    display: inline-flex;
+    width: 58px;
+    height: 32px;
+}
+
+.switch input {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    position: absolute;
+}
+
+.switch-slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: rgba(255, 184, 107, 0.2);
+    border: 1px solid rgba(255, 184, 107, 0.38);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.switch-slider::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #ffe9d4;
+    box-shadow: 0 6px 16px rgba(16, 7, 5, 0.4);
+    transition: var(--transition);
+}
+
+.switch input:checked + .switch-slider {
+    background: rgba(255, 63, 102, 0.32);
+    border-color: rgba(255, 63, 102, 0.68);
+}
+
+.switch input:checked + .switch-slider::before {
+    transform: translateX(26px);
+    background: #ffd6df;
+}
+
+.switch input:focus-visible + .switch-slider {
+    box-shadow: 0 0 0 3px rgba(255, 63, 102, 0.24);
+}
+
 .radio-label {
     flex: 1;
     cursor: pointer;
@@ -349,6 +423,16 @@ textarea:focus {
 .chip:focus-visible {
     outline: 2px solid rgba(255, 184, 107, 0.8);
     outline-offset: 2px;
+}
+
+body.nsfw-mode .chip {
+    border-color: rgba(255, 63, 102, 0.44);
+    background: rgba(255, 63, 102, 0.12);
+}
+
+body.nsfw-mode .chip:hover {
+    border-color: rgba(255, 63, 102, 0.74);
+    background: rgba(255, 63, 102, 0.24);
 }
 
 .primary-btn {
