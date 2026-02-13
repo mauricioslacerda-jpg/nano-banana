@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const prompt = promptInput.value.trim();
         const model = document.querySelector('input[name="model"]:checked').value;
 
-        // Validation
         if (!apiKey) {
             alert('Please enter your Gemini API Key first!');
             apiKeyInput.focus();
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Set Loading State
         setLoading(true);
         imageContainer.innerHTML = `
             <div class="empty-state">
@@ -35,24 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const result = await generateImage(apiKey, model, prompt);
-
-            if (result.error) {
-                throw new Error(result.error.message || 'Unknown error occurred');
-            }
-
-            // Display Image
-            const imageBase64 = result.images[0].imageBytes;
-            if (!imageBase64) {
-                throw new Error("No image data returned from API.");
-            }
-
-            const img = document.createElement('img');
-            img.src = `data:image/png;base64,${imageBase64}`;
-            img.alt = prompt;
-
             imageContainer.innerHTML = '';
-            imageContainer.appendChild(img);
-
+            imageContainer.appendChild(result);
         } catch (error) {
             console.error('Generation Error:', error);
             imageContainer.innerHTML = `
@@ -80,21 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function generateImage(apiKey, model, promptText) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
+        // Official Gemini API: use generateContent endpoint
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
         const payload = {
-            instances: [
-                {
-                    prompt: promptText
-                }
-            ],
-            parameters: {
-                sampleCount: 1,
-                aspectRatio: "1:1"
+            contents: [{
+                parts: [
+                    { text: promptText }
+                ]
+            }],
+            generationConfig: {
+                responseModalities: ["TEXT", "IMAGE"]
             }
         };
 
-        console.log(`Calling API: ${url}`);
+        console.log(`Calling API: ${model}:generateContent`);
 
         const response = await fetch(url, {
             method: 'POST',
@@ -107,59 +89,69 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!response.ok) {
             const errorData = await response.json();
             console.error("API Error Response:", errorData);
-            throw new Error(errorData.error?.message || `HTTP Error: ${response.status} - ${response.statusText}`);
+            throw new Error(errorData.error?.message || `HTTP Error: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log("API Response:", data);
 
-        // Imagen response structure: { predictions: [ { bytesBase64Encoded: "..." } ] }
-        if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
-            return {
-                images: [{ imageBytes: data.predictions[0].bytesBase64Encoded }]
-            };
+        // Parse response: candidates[0].content.parts[]
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+            throw new Error("No candidates returned. The prompt may have been blocked by safety filters.");
         }
 
-        // Safety filter check or other empty states
-        if (data.predictions && data.predictions[0] && !data.predictions[0].bytesBase64Encoded) {
-            console.warn("Prediction returned but no image bytes:", data.predictions[0]);
-            throw new Error("Image generation failed (likely safety filters). Try a different prompt.");
+        const parts = data.candidates[0].content.parts;
+        const container = document.createDocumentFragment();
+
+        let foundImage = false;
+        for (const part of parts) {
+            if (part.inlineData) {
+                // Image part
+                const img = document.createElement('img');
+                img.src = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                img.alt = promptText;
+                container.appendChild(img);
+                foundImage = true;
+            } else if (part.text) {
+                // Text part (sometimes the model returns text alongside the image)
+                const p = document.createElement('p');
+                p.textContent = part.text;
+                p.style.color = 'var(--text-secondary)';
+                p.style.marginTop = '1rem';
+                p.style.fontSize = '0.9rem';
+                container.appendChild(p);
+            }
         }
 
-        throw new Error("Unexpected response structure from API");
+        if (!foundImage) {
+            throw new Error("No image was generated. Try a different prompt or check safety filters.");
+        }
+
+        return container;
     }
 
-    // Debug Utility: Log available models (double-click logo to trigger)
+    // Debug: double-click logo to list available models
     window.checkModels = async () => {
         const apiKey = apiKeyInput.value.trim();
         if (!apiKey) {
-            alert("Enter your API Key first, then double-click the logo again.");
+            alert("Enter your API Key first, then double-click the logo.");
             return;
         }
-
-        console.log("Checking available models...");
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
             const data = await response.json();
-
             if (data.models) {
                 console.group("Available Gemini Models:");
-                const imageModels = data.models.filter(m =>
-                    (m.supportedGenerationMethods && m.supportedGenerationMethods.includes("predict")) ||
-                    m.name.includes("image") ||
-                    m.name.includes("imagen")
-                );
-                console.table(imageModels.map(m => ({ name: m.name, methods: (m.supportedGenerationMethods || []).join(', ') })));
-                console.log("All Models:", data.models);
+                console.table(data.models.map(m => ({
+                    name: m.name,
+                    methods: (m.supportedGenerationMethods || []).join(', ')
+                })));
                 console.groupEnd();
-                alert(`Found ${data.models.length} total models, ${imageModels.length} image-related. Check console (F12) for details.`);
-            } else {
-                console.error("No models found or error:", data);
-                alert("Could not list models. Check console for details.");
+                alert(`Found ${data.models.length} models. Check console (F12).`);
             }
         } catch (e) {
             console.error("Failed to list models:", e);
         }
     };
-
     document.querySelector('.logo').addEventListener('dblclick', window.checkModels);
 });
