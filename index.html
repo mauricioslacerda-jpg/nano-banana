@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano Banana | Gemini Image Gen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo" title="Double-click to list available models in Console">
+                <span class="icon">🍌</span>
+                <h1>Nano Banana</h1>
+            </div>
+            <p class="subtitle">Powered by Google Gemini</p>
+        </header>
+
+        <main>
+            <section class="controls glass-panel">
+                <div class="input-group api-key-group">
+                    <label for="api-key">API Key</label>
+                    <input type="password" id="api-key" placeholder="Paste your Gemini API Key here" autocomplete="off">
+                    <p class="hint">Your key is stored locally in your browser session only.</p>
+                </div>
+
+                <div class="input-group model-group">
+                    <label>Model</label>
+                    <div class="model-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="model" value="imagen-3.0-generate-001" checked>
+                            <span class="radio-custom"></span>
+                            <span class="radio-text">Imagen 3 <span class="badge pro">High Quality</span></span>
+                        </label>
+                        <!-- 
+                        <label class="radio-label">
+                            <input type="radio" name="model" value="gemini-2.0-flash-exp"> 
+                            <span class="radio-custom"></span>
+                            <span class="radio-text">Gemini Flash <span class="badge">Fast</span></span>
+                        </label>
+                        -->
+                    </div>
+                </div>
+
+                <div class="input-group prompt-group">
+                    <label for="prompt">Prompt</label>
+                    <textarea id="prompt"
+                        placeholder="Describe the image you want to generate... e.g., 'A cyberpunk city with neon banana signs'"></textarea>
+                </div>
+
+                <button id="generate-btn" class="primary-btn">
+                    <span class="btn-text">Generate Image</span>
+                    <div class="loader hidden"></div>
+                </button>
+            </section>
+
+            <section class="preview-area glass-panel">
+                <div id="image-container" class="empty-state">
+                    <div class="placeholder-icon">🖼️</div>
+                    <p>Your creation will appear here</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
